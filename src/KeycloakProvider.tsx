@@ -50,7 +50,7 @@ export const KeycloakProvider: FC<IKeycloakConfiguration> = (props) => {
 
   const updateState = useCallback(
     (callbackValue: any) => {
-      const tokens = callbackValue?.tokens ?? null;
+      const tokens = callbackValue ?? null;
       if (!!tokens) {
         saveTokens(tokens);
         if (
@@ -119,7 +119,10 @@ export const KeycloakProvider: FC<IKeycloakConfiguration> = (props) => {
   }, [hydrated]);
 
   useEffect(() => {
-    handleTokenExchange({ response, discovery, config }).then(updateState);
+    handleTokenExchange({ response, discovery, config })
+    .then((res) => {
+      if (res !== null) updateState(res.tokens);
+    });
   }, [response]);
 
   return (
