@@ -1,10 +1,9 @@
 import React, { FC, useCallback, useEffect, useState } from 'react';
 import * as AuthSession from 'expo-auth-session';
-import {
-  TokenResponse,
-  useAuthRequest,
-  useAutoDiscovery,
-} from 'expo-auth-session';
+// import * as WebBrowser from 'expo-web-browser';
+
+import { AuthRequestConfig } from 'expo-auth-session/src/AuthRequest.types';
+
 import { getRealmURL } from './getRealmURL';
 import { KeycloakContext } from './KeycloakContext';
 import useAsyncStorage from './useAsyncStorage';
@@ -94,25 +93,37 @@ export const KeycloakProvider: FC<IKeycloakConfiguration> = (props) => {
       .then(updateState);
   }, [discovery, hydrated, savedTokens, updateState]);
   const handleLogin = useCallback(async () => {
-    clearTimeout(refreshHandle);
-    return promptAsync();
-  }, [promptAsync, refreshHandle]);
-  const handleLogout = useCallback(
-    async (everywhere?: boolean) => {
-      if (!savedTokens) throw new Error('Not logged in.');
-      if (everywhere) {
-        AuthSession.revokeAsync(
-          { token: savedTokens?.accessToken!, ...config },
-          discovery!,
-        ).catch((e) => console.error(e));
-        saveTokens(null);
-      } else {
-        AuthSession.dismiss();
-        saveTokens(null);
-      }
-    },
-    [discovery, savedTokens],
-  );
+    clearTimeout(refreshHandle.current);
+
+    return promptAsync({ useProxy });
+  }, [promptAsync]);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      const _tokens = await getTokens();
+
+      if (!_tokens.accessToken) throw new Error('Not logged in.');
+      await AuthSession.revokeAsync(
+        {
+          token: _tokens.accessToken,
+          ...config,
+        },
+        { revocationEndpoint: discovery?.revocationEndpoint },
+      );
+
+      const redirectUrl = AuthSession.makeRedirectUri({ useProxy: false });
+
+      // await WebBrowser.openAuthSessionAsync(
+      //   `${discovery?.endSessionEndpoint}?redirect_uri=${redirectUrl}`,
+      //   redirectUrl
+      // );
+
+      await removeTokens();
+      setSession((prev) => ({ ...prev, exists: false }));
+    } catch (error) {
+      console.log(error);
+    }
+  }, [discovery]);
 
   useEffect(() => {
     if (hydrated) handleTokenRefresh();

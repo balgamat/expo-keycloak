@@ -1,6 +1,6 @@
 {
-  "name": "expo-keycloak",
-  "version": "1.0.21",
+  "name": "@kettlespace-eng/expo-keycloak",
+  "version": "1.0.37",
   "description": "Keycloak authentication for react-native apps using Expo.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
